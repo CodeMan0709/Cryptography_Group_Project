@@ -244,7 +244,7 @@ const app = express();
 const portListener = 3000;
 
 app.listen(portListener, () => {
-    console.log(`Running at http://localhost:${portListener}`);
+    console.log(`API Running at http://localhost:${portListener}`);
 });
 
 app.get('/getChain' , (req , res) => {
