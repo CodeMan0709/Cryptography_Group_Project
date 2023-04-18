@@ -9,17 +9,19 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-const manu3_sign = ec.keyFromPrivate('e21ed4667d4e879d537c8ad7685c15ee4d3db56191dd26a21d3663959f986614')
-const manu3_id = manu3_sign.getPublic('hex')
+const manu_sign = ec.keyFromPrivate('e21ed4667d4e879d537c8ad7685c15ee4d3db56191dd26a21d3663959f986614')
+const manu_id = manu_sign.getPublic('hex')
+
 
 let tempChain = new Blockchain()
 tempChain.chain.pop();
 
 const PORT = 3002;
-const peers = ['ws://localhost:3000' , 'ws://localhost:3001'];
-const  my_address = "ws://localhost:3002"
+const peers = ['ws://localhost:3001' , 'ws://localhost:3000' , 'ws://localhost:3003'];
+const  my_address = `ws://localhost:${PORT}`
 
-const server = new ws.Server({ port : 3002})
+
+const server = new ws.Server({ port : PORT})
 
 let opened = [] , connected = [];
 
@@ -50,7 +52,6 @@ async function connect(address) {
     }
 }
 
-
 function produceMessage(type, data) {
 	return { type, data };
 }
@@ -61,6 +62,7 @@ function sendMessage(message) {
 	})
 }
 
+
 server.on("connection" , async (socket , req) => {
 
     socket.on("message" , message => {
@@ -69,21 +71,26 @@ server.on("connection" , async (socket , req) => {
         switch(_message.type){
             case "CREATE_DRUG":
 
-                const drugData = _message.data;
-                console.log("Received Data! Pending Length : " , (drugChain.pendingData.length + 1))
+                const drugData = _message.data[0];
+                console.log("Received Data from " ,_message.data[1] ," Pending Length : " , (drugChain.pendingData.length + 1))
+               
                 drugChain.addData(drugData)
-                if(drugChain.pendingData.length == drugChain.blockSize)
-                    console.log("Mining Block!")
+                if(drugChain.pendingData.length == drugChain.blockSize){
+                setTimeout(() => {
                     interactWithChain(99)
+                },0) //To simulate some slow nodes, if necessary
+            }
                 break;
             
-            
-            
+
             case "ADD_BLOCK":
 
-                const newBlock = _message.data;
+                //console.log(_message.data[0])
+
+                const newBlock = _message.data[0];
                 const prevHash = newBlock.prevHash
-                const difficulty = drugChain.difficulty;
+
+                console.log("New Block Received from : ",_message.data[1])
                 
                 if(
                     (sha256(drugChain.getLatestBlock().hash + JSON.stringify(newBlock.data) + newBlock.nonce).toString() === newBlock.hash) &&
@@ -93,15 +100,22 @@ server.on("connection" , async (socket , req) => {
                 ){
                     const newBlock = _message.data;
                     drugChain.chain.push(newBlock);
+                    drugChain.pendingData = [];
+                    console.log("Block Added")
                 }
+                else if(drugChain.getLatestBlock().hash = newBlock.hash)
+                    console.log("Block Not Added. The block is already present here")
+                else if(drugChain.getLatestBlock().data === newBlock.data)
+                    console.log("Block Not Added. The duplicate block data detected")
+                else
+                    console.log("Checks failed. Block was not added")
                 break;
             
             case "SEND_CHAIN":
-
+            
                 console.log()
                 console.log("Blocks received")
                 console.log()
-
                 const { block, finished } = _message.data;
 
                 if (!finished)
@@ -116,6 +130,7 @@ server.on("connection" , async (socket , req) => {
                 break;
 
             case "REQUEST_CHAIN":
+
                 console.log('A copy of the blockchain was requested')
                 const socketToSend = opened.filter(node => node.address === _message.data)[0].socket;
                 for (let i = 0; i < drugChain.chain.length; i++) {
@@ -131,21 +146,20 @@ server.on("connection" , async (socket , req) => {
                 break;
             
             case "HANDSHAKE":
+
                 const nodes = _message.data;
                 nodes.forEach(node => connect(node))
         }
     })
 }) 
 
-console.log("Manufacturer ID (Public Add) : ",manu3_id)
+console.log("Manufacturer ID (Public Add) : ",manu_id)
 console.log()
 console.log("Connect to Peers            -> 1");
 console.log("Request copy of blockchain  -> 2");
 console.log('Show chain                  -> 3');
 console.log('Add drug                    -> 4');
-console.log('View drugs owned by a user  -> 5');
 console.log()
-
 function interactWithChain(choice){
     switch(choice){
         case 1:
@@ -160,11 +174,12 @@ function interactWithChain(choice){
         case 99:
             if (drugChain.pendingData.length == drugChain.blockSize) {
                 drugChain.minePending();
-                sendMessage(produceMessage("ADD_BLOCK", drugChain.getLatestBlock()))
+                console.log("Broadcasting block to other nodes.")
+                sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
                 break;
             }
             else{
-                console.log("Listening....")
+                console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
             }
         break;
         case 3:
@@ -174,19 +189,18 @@ function interactWithChain(choice){
         break;
         case 4:
             const rand = Math.floor(Math.random() * 100)
-            const data1 = new blockData(manu3_id , `Drug ID ${rand}` , `Drug Name ${rand}`);
-            blockData.signDrug(manu3_sign , data1)
+            const data1 = new blockData(manu_id , `Drug ID ${rand}` , `Drug Name ${rand}`);
+            blockData.signDrug(manu_sign , data1)
             console.log(`Broadcasting --> Drug ID ${rand} Drug Name ${rand}`)
-            sendMessage(produceMessage("CREATE_DRUG", data1));
+            sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
             drugChain.addData(data1)
                 if(drugChain.pendingData.length == drugChain.blockSize){
-                    console.log("Mining Block!")
                     drugChain.minePending()
+                   sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
                 }
                 else
-                    console.log("Listening...")
+                    console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
         break;
-        case 5:
         default:
             flag = false
     }

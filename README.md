@@ -1,8 +1,6 @@
-BITS F463
-
 # Running the test network
 
-Run `npm install`
+Run `npm install` , after cloning the repo
 
 `cd` into the `dist` folder to run the nodes
 
@@ -14,3 +12,7 @@ Run,
 - `node miner3.js`
 
 Connect each node with its peers [Option `1` in the CLI] before interacting with the blockchain
+
+# About
+
+A beginner blockchain that uses WebSocket to let nodes communicate with each other. As of writing, this project lacks a lot of functionalities that are considered desirable on a public working blockchain.

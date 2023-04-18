@@ -10,15 +10,14 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-const manu_sign = ec.keyFromPrivate('ddd0b6e733f2dbc974468c0536616679591f70dae94ea97050efd70a4e383df5')
+const manu_sign = ec.keyFromPrivate('ea29bd9c1a35ef95b4afa163902a27d1ed2d1fe304a5035e1c6ce5df9d5ec09f')
 const manu_id = manu_sign.getPublic('hex')
-
 
 let tempChain = new Blockchain()
 tempChain.chain.pop();
 
-const PORT = 3001;
-const peers = ['ws://localhost:3000' , 'ws://localhost:3002' , 'ws://localhost:3003'];
+const PORT = 3003;
+const peers = ['ws://localhost:3001' , 'ws://localhost:3002' , 'ws://localhost:3000'];
 const  my_address = `ws://localhost:${PORT}`
 
 const server = new ws.Server({ port : PORT})
@@ -75,11 +74,11 @@ server.on("connection" , async (socket , req) => {
                 console.log("Received Data from " ,_message.data[1] ," Pending Length : " , (drugChain.pendingData.length + 1))
                
                 drugChain.addData(drugData)
-                if(drugChain.pendingData.length == drugChain.blockSize){
-                setTimeout(() => {
-                    interactWithChain(99)
-                },0) //To simulate some slow nodes, if necessary
-            }
+                // if(drugChain.pendingData.length == drugChain.blockSize){
+                // setTimeout(() => {
+                //     interactWithChain(99)
+                // },0) //To simulate some slow nodes, if necessary
+                // }
                 break;
             
 

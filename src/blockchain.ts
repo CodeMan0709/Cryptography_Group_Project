@@ -5,7 +5,6 @@ const sha256 = require('crypto-js/sha256')
 
 export class blockData{
 
-   // public timestamp : string;
     public manufacturerID : string;
     public drugID : string;
     public drugName : string;
@@ -13,7 +12,6 @@ export class blockData{
 
     constructor( manufacturerID : string , drugID : string , drugName : string ) {
         const date = new Date();
-       // this.timestamp = date.toDateString() + " " + date.toTimeString();
         this.drugName = drugName;
         this.manufacturerID = manufacturerID;
         this.drugID = drugID;
@@ -53,6 +51,7 @@ export class blockData{
 
 class Block{
 
+    public index : number;
     public timestamp : string;
     public nonce : number;
     public data : Array<blockData>;
@@ -61,6 +60,7 @@ class Block{
 
     constructor(data : Array<blockData> , prevHash : string = ' '){
         const date = new Date();
+        this.index = 0;
         this.timestamp = date.toDateString() + " " + date.toTimeString();
         this.nonce = 0;
         this.data = data;
@@ -73,10 +73,12 @@ class Block{
     }
 
     mineBlock(difficulty : number) : void{
+        console.log("Mining Block!")
         while(this.hash.substring(0 , difficulty) !== Array(1 + difficulty).join("0")){
             this.nonce++;
             this.hash = Block.calcHash(this);
         }
+
     }
 
     static hasValidData(block : Block) {
@@ -140,14 +142,15 @@ export class Blockchain{
     }
 
     addData(data : blockData) : void{
-        // add manu/drug id chk here and chk data validity
         if(blockData.isValid(data))
             this.pendingData.push(data)
     }
 
     addBlock(newBlock : Block) : void{
+        newBlock.index = this.getLatestBlock().index + 1;
         newBlock.prevHash = this.getLatestBlock().hash;
         newBlock.mineBlock(this.difficulty)
+        this.pendingData = []
         newBlock.hash = Block.calcHash(newBlock);
         this.chain.push(newBlock)
     }

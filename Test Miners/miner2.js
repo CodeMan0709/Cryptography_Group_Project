@@ -74,7 +74,7 @@ server.on("connection" , async (socket , req) => {
                 console.log("Received Data! Pending Length : " , (drugChain.pendingData.length + 1))
                 drugChain.addData(drugData)
                 if(drugChain.pendingData.length == drugChain.blockSize)
-                    console.log("Mining Block!")
+                    
                     interactWithChain(99)
                 break;
         
@@ -179,7 +179,7 @@ function interactWithChain(choice){
             sendMessage(produceMessage("CREATE_DRUG", data1));
             drugChain.addData(data1)
                 if(drugChain.pendingData.length == drugChain.blockSize){
-                    console.log("Mining Block!")
+                    
                     drugChain.minePending()
                 }
                 else
