@@ -174,9 +174,10 @@ export class Blockchain{
 }
 
 const drugChain = new Blockchain();
-
+const peerList:Array<string> = [];
 
 module.exports.Block = Block;
 module.exports.Blockchain = Blockchain;
 module.exports.blockData = blockData;
 module.exports.drugChain = drugChain;
+module.exports.peerList = peerList;

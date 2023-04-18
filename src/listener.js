@@ -1,8 +1,12 @@
+//This node does not mine, it exists only to send data to the frontend
+
 const ws = require("ws");
-const {Block ,Blockchain , blockData , drugChain} = require('./blockchain.js');
+const {Blockchain , blockData , drugChain, peerList} = require('../dist/blockchain.js');
 const sha256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
+const axios = require('axios');
+const express = require('express');
 
 const readline = require('readline');
 const rl = readline.createInterface({
@@ -10,59 +14,54 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-const manu_sign = ec.keyFromPrivate('ddd0b6e733f2dbc974468c0536616679591f70dae94ea97050efd70a4e383df5')
+let peers;
+
+key = ec.genKeyPair();
+id = key.getPublic('hex');
+const manu_sign = ec.keyFromPrivate(id) //ea29bd9c1a35ef95b4afa163902a27d1ed2d1fe304a5035e1c6ce5df9d5ec09f
 const manu_id = manu_sign.getPublic('hex')
 
-
-let tempChain = new Blockchain()
-tempChain.chain.pop();
-
-const PORT = 3001;
-const peers = ['ws://localhost:3000' , 'ws://localhost:3002' , 'ws://localhost:3003'];
-const  my_address = `ws://localhost:${PORT}`
-
-const server = new ws.Server({ port : PORT})
-
-let opened = [] , connected = [];
-
+const PORT = 3000 + Math.floor(Math.random()*100)
 console.log("Listening on PORT" , PORT)
 
-async function connect(address) {
-    if(!connected.find(peerAddress => peerAddress === address) && address != my_address){
-        const socket = new ws(address);
+let my_address = `ws://localhost:${PORT}`
 
-        socket.on("open" , () => {
-            socket.send(JSON.stringify(produceMessage("HANDSHAKE" , [my_address , ...connected])))
-            
-            opened.forEach(node => node.socket.send(JSON.stringify(produceMessage("HANDSHAKE" , [address]))))
-
-            if (!opened.find(peer => peer.address === address) && address !== my_address) {
-                opened.push({ socket, address });
-            }
-
-            if (!connected.find(peerAddress => peerAddress === address) && address !== my_address) {
-                connected.push(address);
-            }
-        });
-
-        socket.on("close", () => {
-			opened.splice(connected.indexOf(address), 1);
-			connected.splice(connected.indexOf(address), 1);
-		});
-    }
-}
-
-function produceMessage(type, data) {
-	return { type, data };
-}
-
-function sendMessage(message) {
-	opened.forEach(node => {
-		node.socket.send(JSON.stringify(message));
-	})
-}
+let data = JSON.stringify({
+    "peerAddress": `ws://localhost:${PORT}`
+  });
 
 
+let getConfig = {
+method: 'get',
+maxBodyLength: Infinity,
+url: 'http://localhost:8080/peerList',
+headers: { 
+    'Content-Type': 'application/json',
+},
+data : data
+};
+
+let postConfig = {
+  method: 'post',
+  url: 'http://localhost:8080/addPeer',
+  headers: { 
+    'Content-Type': 'application/json', 
+  },
+  data : data
+};
+
+axios.request(postConfig)
+.then((response) => {
+  console.log("Added as a Peer");
+})
+.catch((error) => {
+  console.log(error);
+});
+
+server = new ws.Server({ port : PORT})
+let opened = [] , connected = [];
+
+if(server){
 server.on("connection" , async (socket , req) => {
 
     socket.on("message" , message => {
@@ -70,22 +69,14 @@ server.on("connection" , async (socket , req) => {
 
         switch(_message.type){
             case "CREATE_DRUG":
-
                 const drugData = _message.data[0];
                 console.log("Received Data from " ,_message.data[1] ," Pending Length : " , (drugChain.pendingData.length + 1))
                
                 drugChain.addData(drugData)
-                if(drugChain.pendingData.length == drugChain.blockSize){
-                setTimeout(() => {
-                    interactWithChain(99)
-                },0) //To simulate some slow nodes, if necessary
-            }
                 break;
             
 
             case "ADD_BLOCK":
-
-                //console.log(_message.data[0])
 
                 const newBlock = _message.data[0];
                 const prevHash = newBlock.prevHash
@@ -96,7 +87,7 @@ server.on("connection" , async (socket , req) => {
                     (sha256(drugChain.getLatestBlock().hash + JSON.stringify(newBlock.data) + newBlock.nonce).toString() === newBlock.hash) &&
                     newBlock.hash.startsWith(Array(drugChain.difficulty + 1)) &&
                     newBlock.hasValidData(newBlock) || true &&
-                    drugChain.getLatestBlock().hash === prevHash //add timestamp check (gen chk also)
+                    drugChain.getLatestBlock().hash === prevHash
                 ){
                     const newBlock = _message.data;
                     drugChain.chain.push(newBlock);
@@ -152,17 +143,29 @@ server.on("connection" , async (socket , req) => {
         }
     })
 }) 
+}
 
-console.log("Manufacturer ID (Public Add) : ",manu_id)
-console.log()
-console.log("Connect to Peers            -> 1");
-console.log("Request copy of blockchain  -> 2");
-console.log('Show chain                  -> 3');
-console.log('Add drug                    -> 4');
-console.log()
-function interactWithChain(choice){
+
+
+let tempChain = new Blockchain()
+tempChain.chain.pop();
+
+async function interactWithChain(choice){
     switch(choice){
+        case 0:
+            console.log(peerList)
         case 1:
+
+            await axios.request(getConfig)
+            .then((response) => {
+                peers = response.data
+                peers.splice(peers.indexOf(my_address) , 1)
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+
+            console.log("Connecting to peers : ",peers)
             peers.forEach(peer => connect(peer));
             console.log()
             console.log("Connected to Peers")
@@ -170,6 +173,18 @@ function interactWithChain(choice){
         break;
         case 2:
             sendMessage(produceMessage("REQUEST_CHAIN" , my_address))
+        break;
+        case 3:
+            console.log()
+	        console.log(JSON.stringify(drugChain , null , 3))
+            console.log()
+        break;
+        case 4:
+            const rand = Math.floor(Math.random() * 100)
+            const data1 = new blockData(manu_id , `Drug ID ${rand}` , `Drug Name ${rand}`);
+            blockData.signDrug(manu_sign , data1)
+            console.log(`Broadcasting --> Drug ID ${rand} Drug Name ${rand}`)
+            sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
         break;
         case 99:
             if (drugChain.pendingData.length == drugChain.blockSize) {
@@ -182,43 +197,57 @@ function interactWithChain(choice){
                 console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
             }
         break;
-        case 3:
-            console.log()
-	        console.log(JSON.stringify(drugChain , null , 1))
-            console.log()
-        break;
-        case 4:
-            const rand = Math.floor(Math.random() * 100)
-            const data1 = new blockData(manu_id , `Drug ID ${rand}` , `Drug Name ${rand}`);
-            blockData.signDrug(manu_sign , data1)
-            console.log(`Broadcasting --> Drug ID ${rand} Drug Name ${rand}`)
-            sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
-            drugChain.addData(data1)
-                if(drugChain.pendingData.length == drugChain.blockSize){
-                    drugChain.minePending()
-                   sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
-                }
-                else
-                    console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
-        break;
         default:
             flag = false
     }
 }
 
-rl.on('line', (input) => {
-    if (input === '1') {
-      interactWithChain(1);
-    } else if (input === '2') {
-      interactWithChain(2);
-    } else if (input === '3') {
-      interactWithChain(3);
-    } else if (input === '4') {
-      interactWithChain(4);
-    } else if (input === '5') {
-      interactWithChain(5);
-    } else {
-      console.log('Invalid input');
+async function connect(address) {
+    if(!connected.find(peerAddress => peerAddress === address) && address != my_address){
+        const socket = new ws(address);
+
+        socket.on("open" , () => {
+            socket.send(JSON.stringify(produceMessage("HANDSHAKE" , [my_address , ...connected])))
+            
+            opened.forEach(node => node.socket.send(JSON.stringify(produceMessage("HANDSHAKE" , [address]))))
+
+            if (!opened.find(peer => peer.address === address) && address !== my_address) {
+                opened.push({ socket, address });
+            }
+
+            if (!connected.find(peerAddress => peerAddress === address) && address !== my_address) {
+                connected.push(address);
+            }
+        });
+
+        socket.on("close", () => {
+			opened.splice(connected.indexOf(address), 1);
+			connected.splice(connected.indexOf(address), 1);
+		});
     }
-  });
+}
+
+function produceMessage(type, data) {
+	return { type, data };
+}
+
+function sendMessage(message) {
+	opened.forEach(node => {
+		node.socket.send(JSON.stringify(message));
+	})
+}
+
+interactWithChain(1)
+
+const app = express();
+
+const portListener = 3000;
+
+app.listen(portListener, () => {
+    console.log(`Running at http://localhost:${portListener}`);
+});
+
+app.get('/getChain' , (req , res) => {
+    res.send(drugChain)
+})
   
