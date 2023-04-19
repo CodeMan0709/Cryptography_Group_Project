@@ -12,8 +12,11 @@ Run `node miner.js` in multiple terminals
 
 Run `node api.js` in another terminal. The API runs at port `3000` by default.
 
-To view the blockchain, 
+To view the blockchain: Make a `GET` request to `http://localhost:3000/getChain` to get a copy of the blockchain
 
 Connect each node with its peers [Option `1` in the CLI] before interacting with the blockchain
 
-Make a `GET` request to `http://localhost:3000/getChain` to get a copy of the blockchain
+
+# About
+
+A beginner blockchain that uses WebSocket to let nodes communicate with each other. As of writing, this project lacks a lot of functionalities that are considered desirable on a public working blockchain.

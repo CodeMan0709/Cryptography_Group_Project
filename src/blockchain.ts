@@ -98,7 +98,7 @@ export class Blockchain{
 
     constructor(){
         this.chain = [this.createGenesis()];
-        this.difficulty = 2;
+        this.difficulty = 5;
         this.pendingData = [];
         this.blockSize = 3;
     }

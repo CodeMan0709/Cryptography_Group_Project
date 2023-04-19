@@ -18,7 +18,7 @@ let peers;
 
 key = ec.genKeyPair();
 id = key.getPublic('hex');
-const manu_sign = ec.keyFromPrivate(id) //ea29bd9c1a35ef95b4afa163902a27d1ed2d1fe304a5035e1c6ce5df9d5ec09f
+const manu_sign = ec.keyFromPrivate(id)
 const manu_id = manu_sign.getPublic('hex')
 
 const PORT = 3000 + Math.floor(Math.random()*100)
@@ -58,6 +58,7 @@ axios.request(postConfig)
   console.log(error);
 });
 
+
 server = new ws.Server({ port : PORT})
 let opened = [] , connected = [];
 
@@ -69,10 +70,15 @@ server.on("connection" , async (socket , req) => {
 
         switch(_message.type){
             case "CREATE_DRUG":
+
                 const drugData = _message.data[0];
                 console.log("Received Data from " ,_message.data[1] ," Pending Length : " , (drugChain.pendingData.length + 1))
                
                 drugChain.addData(drugData)
+
+                if(drugChain.pendingData.length == drugChain.blockSize){
+                    interactWithChain(99)
+                }
                 break;
             
 
@@ -150,13 +156,8 @@ server.on("connection" , async (socket , req) => {
 let tempChain = new Blockchain()
 tempChain.chain.pop();
 
-async function interactWithChain(choice){
-    switch(choice){
-        case 0:
-            console.log(peerList)
-        case 1:
-
-            await axios.request(getConfig)
+async function connectWithPeers(){
+    await axios.request(getConfig)
             .then((response) => {
                 peers = response.data
                 peers.splice(peers.indexOf(my_address) , 1)
@@ -170,36 +171,6 @@ async function interactWithChain(choice){
             console.log()
             console.log("Connected to Peers")
             console.log()
-        break;
-        case 2:
-            sendMessage(produceMessage("REQUEST_CHAIN" , my_address))
-        break;
-        case 3:
-            console.log()
-	        console.log(JSON.stringify(drugChain , null , 3))
-            console.log()
-        break;
-        case 4:
-            const rand = Math.floor(Math.random() * 100)
-            const data1 = new blockData(manu_id , `Drug ID ${rand}` , `Drug Name ${rand}`);
-            blockData.signDrug(manu_sign , data1)
-            console.log(`Broadcasting --> Drug ID ${rand} Drug Name ${rand}`)
-            sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
-        break;
-        case 99:
-            if (drugChain.pendingData.length == drugChain.blockSize) {
-                drugChain.minePending();
-                console.log("Broadcasting block to other nodes.")
-                sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
-                break;
-            }
-            else{
-                console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
-            }
-        break;
-        default:
-            flag = false
-    }
 }
 
 async function connect(address) {
@@ -237,7 +208,9 @@ function sendMessage(message) {
 	})
 }
 
-interactWithChain(1)
+
+
+connectWithPeers()
 
 const app = express();
 
@@ -249,5 +222,11 @@ app.listen(portListener, () => {
 
 app.get('/getChain' , (req , res) => {
     res.send(drugChain)
+})
+  
+
+app.get('/listDrugs' , (req , res) => {
+    const id = req.query['id']
+    res.send(drugChain.getDrugs(id))
 })
   

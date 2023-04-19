@@ -4,8 +4,8 @@ const sha256 = require('crypto-js/sha256')
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const axios = require('axios');
-
 const readline = require('readline');
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -15,7 +15,7 @@ let peers;
 
 key = ec.genKeyPair();
 id = key.getPublic('hex');
-const manu_sign = ec.keyFromPrivate(id) //ea29bd9c1a35ef95b4afa163902a27d1ed2d1fe304a5035e1c6ce5df9d5ec09f
+const manu_sign = ec.keyFromPrivate(id)
 const manu_id = manu_sign.getPublic('hex')
 
 const PORT = 3000 + Math.floor(Math.random()*100)
@@ -73,14 +73,14 @@ server.on("connection" , async (socket , req) => {
                 drugChain.addData(drugData)
 
                 if(drugChain.pendingData.length == drugChain.blockSize){
-                    interactWithChain(99)
+                    startMining()
                 }
 
                 // if(drugChain.pendingData.length == drugChain.blockSize){
                 //     let secs = Math.floor(Math.random()*10)
                 //     console.log("Mining in ",secs)
                 //     setTimeout(() => {
-                //         interactWithChain(99)
+                //         startMining()
                 //     },secs*1000) //To simulate some slow nodes, if necessary
                 // }
                 break;
@@ -162,8 +162,6 @@ tempChain.chain.pop();
 
 async function interactWithChain(choice){
     switch(choice){
-        case 0:
-            console.log(peerList)
         case 1:
 
             await axios.request(getConfig)
@@ -197,25 +195,24 @@ async function interactWithChain(choice){
             sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
             drugChain.addData(data1)
                 if(drugChain.pendingData.length == drugChain.blockSize){
-                    drugChain.minePending()
-                   sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
+                    startMining()
                 }
                 else
                     console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
         break;
-        case 99:
-            if (drugChain.pendingData.length == drugChain.blockSize) {
-                drugChain.minePending();
-                console.log("Broadcasting block to other nodes.")
-                sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
-                break;
-            }
-            else{
-                console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
-            }
-        break;
         default:
-            flag = false
+            console.log('Invalid Input')
+    }
+}
+
+function startMining(){
+    if (drugChain.pendingData.length == drugChain.blockSize) {
+        drugChain.minePending();
+        console.log("Broadcasting block to other nodes.")
+        sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
+    }
+    else{
+        console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
     }
 }
 
@@ -262,24 +259,11 @@ console.log("Connect to Peers            -> 1");
 console.log("Request copy of blockchain  -> 2");
 console.log('Show chain                  -> 3');
 console.log('Add drug                    -> 4');
+console.log('Show drugs owned by a user  -> 5');
 console.log()
 
 
 rl.on('line', (input) => {
-    if (input === '0') {
-      interactWithChain(0);
-    } else if (input === '1') {
-        interactWithChain(1);
-    } else if (input === '2') {
-      interactWithChain(2);
-    } else if (input === '3') {
-      interactWithChain(3);
-    } else if (input === '4') {
-      interactWithChain(4);
-    } else if (input === '5') {
-      interactWithChain(5);
-    } else {
-      console.log('Invalid input');
-    }
+    interactWithChain(parseInt(input))
 });
   
