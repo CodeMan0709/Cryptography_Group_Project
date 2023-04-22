@@ -84,7 +84,6 @@ server.on("connection" , async (socket , req) => {
                     newBlock.hasValidData(newBlock) || true &&
                     drugChain.getLatestBlock().hash === prevHash
                 ){
-                    const newBlock = _message.data;
                     drugChain.chain.push(newBlock);
                     drugChain.pendingData = [];
                     console.log("Block Added")
@@ -202,7 +201,7 @@ app.listen(portListener, () => {
 });
 
 app.get('/getChain' , (req , res) => {
-    res.send(drugChain)
+    res.send(drugChain.chain)
 })
   
 

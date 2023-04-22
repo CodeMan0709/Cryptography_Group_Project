@@ -76,7 +76,7 @@ server.on("connection" , async (socket , req) => {
 
                 const drugData = _message.data[0];
                 console.log("Received Data from " ,_message.data[1] ," Pending Length : " , (drugChain.pendingData.length + 1))
-               
+                console.log(drugData)
                 drugChain.addData(drugData)
 
                 if(drugChain.pendingData.length == drugChain.blockSize){
@@ -106,7 +106,6 @@ server.on("connection" , async (socket , req) => {
                     newBlock.hasValidData(newBlock) || true &&
                     drugChain.getLatestBlock().hash === prevHash
                 ){
-                    const newBlock = _message.data;
                     drugChain.chain.push(newBlock);
                     drugChain.pendingData = [];
                     console.log("Block Added")
@@ -287,7 +286,6 @@ function sendMessage(message) {
 
 console.log("Manufacturer ID (Public Add) : ",manu_id)
 console.log()
-console.log("Create Miner                -> 0");
 console.log("Connect to Peers            -> 1");
 console.log("Request copy of blockchain  -> 2");
 console.log('Show chain                  -> 3');
