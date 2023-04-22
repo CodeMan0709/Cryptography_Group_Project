@@ -190,7 +190,7 @@ function interactWithChain(choice){
         case 4:
             const rand = Math.floor(Math.random() * 100)
             const data1 = new blockData(manu_id , `Drug ID ${rand}` , `Drug Name ${rand}`);
-            blockData.signDrug(manu_sign , data1)
+            blockData.signData(manu_sign , data1)
             console.log(`Broadcasting --> Drug ID ${rand} Drug Name ${rand}`)
             sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
             drugChain.addData(data1)

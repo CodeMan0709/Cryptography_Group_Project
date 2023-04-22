@@ -13,7 +13,7 @@ const peerList = [];
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.get('/', (req, res) => {
-    res.send('Express + TypeScript Server');
+    res.send('Server Running');
 });
 app.post('/addPeer', (req, res) => {
     console.log(req.body);

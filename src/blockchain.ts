@@ -2,103 +2,16 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const sha256 = require('crypto-js/sha256')
 
-
-export class blockData{
-
-    public manufacturerID : string;
-    public drugID : string;
-    public drugName : string;
-    public signature;
-
-    constructor( manufacturerID : string , drugID : string , drugName : string ) {
-        const date = new Date();
-        this.drugName = drugName;
-        this.manufacturerID = manufacturerID;
-        this.drugID = drugID;
-        this.signature = '';
-    }
-
-    static calcHash(bd : blockData) : string{ 
-        return sha256(JSON.stringify(bd.drugName) + bd.manufacturerID + bd.drugID).toString();
-    }
-
-    static signDrug(signingKey : any , bd : blockData){
-        if(signingKey.getPublic('hex') !== bd.manufacturerID){
-            throw new Error("ERROR : You can only sign drugs under your manufacturerID.");
-        }
-        const hash = blockData.calcHash(bd);
-        const sig = signingKey.sign(hash , 'base64');
-        bd.signature = sig.toDER('hex');
-    }   
-
-    static isValid(bd : blockData) : boolean{
-        if(!bd)
-            return true
-
-        if(bd.drugName == "Genesis Block")
-            return true;
-
-        if (!bd.signature || bd.signature.length === 0 || bd.signature == "") 
-            throw new Error('No signature provided');
-        
-        if(!bd.manufacturerID || !bd.drugID || !bd.drugName)
-            return false;
-        
-        const publicKey = ec.keyFromPublic(bd.manufacturerID , 'hex');
-        return publicKey.verify(blockData.calcHash(bd) , bd.signature);
-    }
-}
-
-class Block{
-
-    public index : number;
-    public timestamp : string;
-    public nonce : number;
-    public data : Array<blockData>;
-    public hash : string;
-    public prevHash : string;
-
-    constructor(data : Array<blockData> , prevHash : string = ' '){
-        const date = new Date();
-        this.index = 0;
-        this.timestamp = date.toDateString() + " " + date.toTimeString();
-        this.nonce = 0;
-        this.data = data;
-        this.hash = Block.calcHash(this);
-        this.prevHash = prevHash;
-    }
-
-    static calcHash(block : Block) : string{
-        return sha256(block.prevHash + JSON.stringify(block.data) + block.nonce).toString();
-    }
-
-    mineBlock(difficulty : number) : void{
-        console.log("Mining Block!")
-        while(this.hash.substring(0 , difficulty) !== Array(1 + difficulty).join("0")){
-            this.nonce++;
-            this.hash = Block.calcHash(this);
-        }
-
-    }
-
-    static hasValidData(block : Block) {
-        for(const d of block.data)
-            if(!blockData.isValid(d))
-                return false;
-        return true;
-    }
-}
-
 export class Blockchain{
 
-    public chain : Array<Block>; //CHECK LATER
+    public chain : Array<Block>;
     public difficulty : number;
     public pendingData : Array<blockData>;
     public blockSize : number;
 
     constructor(){
         this.chain = [this.createGenesis()];
-        this.difficulty = 5;
+        this.difficulty = 3;
         this.pendingData = [];
         this.blockSize = 3;
     }
@@ -142,7 +55,7 @@ export class Blockchain{
     }
 
     addData(data : blockData) : void{
-        if(blockData.isValid(data))
+        if(blockData.verifyTransactions(data))
             this.pendingData.push(data)
     }
 
@@ -171,6 +84,94 @@ export class Blockchain{
 
         return true;
     }
+
+}
+
+export class Block{
+
+    public index : number;
+    public timestamp : string;
+    public nonce : number;
+    public data : Array<blockData>;
+    public hash : string;
+    public prevHash : string;
+
+    constructor(data : Array<blockData> , prevHash : string = ' '){
+        const date = new Date();
+        this.index = 0;
+        this.timestamp = date.toDateString() + " " + date.toTimeString();
+        this.nonce = 0;
+        this.data = data;
+        this.hash = Block.calcHash(this);
+        this.prevHash = prevHash;
+    }
+
+    static calcHash(block : Block) : string{
+        return sha256(block.prevHash + JSON.stringify(block.data) + block.nonce).toString();
+    }
+
+    mineBlock(difficulty : number) : void{
+        console.log("Mining Block!")
+        while(this.hash.substring(0 , difficulty) !== Array(1 + difficulty).join("0")){
+            this.nonce++;
+            this.hash = Block.calcHash(this);
+        }
+
+    }
+
+    static hasValidData(block : Block) {
+        for(const d of block.data)
+            if(!blockData.verifyTransactions(d))
+                return false;
+        return true;
+    }
+}
+
+export class blockData{
+
+    public manufacturerID : string;
+    public drugID : string;
+    public drugName : string;
+    public signature;
+
+    constructor( manufacturerID : string , drugID : string , drugName : string ) {
+        this.drugName = drugName;
+        this.manufacturerID = manufacturerID;
+        this.drugID = drugID;
+        this.signature = '';
+    }
+
+    static calcHash(bd : blockData) : string{ 
+        return sha256(JSON.stringify(bd.drugName) + bd.manufacturerID + bd.drugID).toString();
+    }
+
+    static signData(signingKey : any , bd : blockData){
+        if(signingKey.getPublic('hex') !== bd.manufacturerID){
+            throw new Error("ERROR : You can only sign under your manufacturerID.");
+        }
+        const hash = blockData.calcHash(bd);
+        const sig = signingKey.sign(hash , 'base64');
+        bd.signature = sig.toDER('hex');
+    }
+
+    static verifyTransactions(bd : blockData) : boolean{
+        if(!bd)
+            return true
+
+        if(bd.drugName == "Genesis Block")
+            return true;
+
+        if (!bd.signature || bd.signature.length === 0 || bd.signature == "") 
+            throw new Error('No signature provided');
+        
+        if(!bd.manufacturerID || !bd.drugID || !bd.drugName)
+            return false;
+        
+        const publicKey = ec.keyFromPublic(bd.manufacturerID , 'hex');
+
+        return publicKey.verify(blockData.calcHash(bd) , bd.signature);
+    }
+
 }
 
 const drugChain = new Blockchain();

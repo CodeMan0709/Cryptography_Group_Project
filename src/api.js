@@ -8,18 +8,10 @@ const ec = new EC('secp256k1');
 const axios = require('axios');
 const express = require('express');
 
-const readline = require('readline');
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
 let peers;
 
 key = ec.genKeyPair();
 id = key.getPublic('hex');
-const manu_sign = ec.keyFromPrivate(id)
-const manu_id = manu_sign.getPublic('hex')
 
 const PORT = 3000 + Math.floor(Math.random()*100)
 console.log("Listening on PORT" , PORT)
@@ -75,10 +67,7 @@ server.on("connection" , async (socket , req) => {
                 console.log("Received Data from " ,_message.data[1] ," Pending Length : " , (drugChain.pendingData.length + 1))
                
                 drugChain.addData(drugData)
-
-                if(drugChain.pendingData.length == drugChain.blockSize){
-                    interactWithChain(99)
-                }
+                
                 break;
             
 
@@ -201,14 +190,6 @@ async function connect(address) {
 function produceMessage(type, data) {
 	return { type, data };
 }
-
-function sendMessage(message) {
-	opened.forEach(node => {
-		node.socket.send(JSON.stringify(message));
-	})
-}
-
-
 
 connectWithPeers()
 

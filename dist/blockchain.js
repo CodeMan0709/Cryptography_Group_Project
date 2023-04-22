@@ -6,7 +6,6 @@ const ec = new EC('secp256k1');
 const sha256 = require('crypto-js/sha256');
 class blockData {
     constructor(manufacturerID, drugID, drugName) {
-        const date = new Date();
         this.drugName = drugName;
         this.manufacturerID = manufacturerID;
         this.drugID = drugID;
@@ -15,15 +14,15 @@ class blockData {
     static calcHash(bd) {
         return sha256(JSON.stringify(bd.drugName) + bd.manufacturerID + bd.drugID).toString();
     }
-    static signDrug(signingKey, bd) {
+    static signData(signingKey, bd) {
         if (signingKey.getPublic('hex') !== bd.manufacturerID) {
-            throw new Error("ERROR : You can only sign drugs under your manufacturerID.");
+            throw new Error("ERROR : You can only sign under your manufacturerID.");
         }
         const hash = blockData.calcHash(bd);
         const sig = signingKey.sign(hash, 'base64');
         bd.signature = sig.toDER('hex');
     }
-    static isValid(bd) {
+    static verifyTransactions(bd) {
         if (!bd)
             return true;
         if (bd.drugName == "Genesis Block")
@@ -59,7 +58,7 @@ class Block {
     }
     static hasValidData(block) {
         for (const d of block.data)
-            if (!blockData.isValid(d))
+            if (!blockData.verifyTransactions(d))
                 return false;
         return true;
     }
@@ -67,7 +66,7 @@ class Block {
 class Blockchain {
     constructor() {
         this.chain = [this.createGenesis()];
-        this.difficulty = 2;
+        this.difficulty = 3;
         this.pendingData = [];
         this.blockSize = 3;
     }
@@ -104,7 +103,7 @@ class Blockchain {
         return drugList;
     }
     addData(data) {
-        if (blockData.isValid(data))
+        if (blockData.verifyTransactions(data))
             this.pendingData.push(data);
     }
     addBlock(newBlock) {

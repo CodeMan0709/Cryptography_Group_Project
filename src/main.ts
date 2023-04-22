@@ -8,13 +8,13 @@ const manu1_sign = ec.keyFromPrivate('7c2c539108f6207905296e9799b78e6c24e4477f28
 const manu1_id = manu1_sign.getPublic('hex')
 
 const data1 = new blockData(manu1_id , "Drug 1 ID" , "Drug 1 Name");
-blockData.signDrug(manu1_sign , data1)
+blockData.signData(manu1_sign , data1)
 bc.addData(data1)
 
 bc.minePending()
 
 const data2 = new blockData(manu1_id , "Drug 2 ID" , "Drug 2 Name");
-blockData.signDrug(manu1_sign , data2)
+blockData.signData(manu1_sign , data2)
 bc.addData(data2)
 
 bc.minePending()
@@ -25,7 +25,7 @@ console.log()
 console.log(JSON.stringify(bc , null , 4))
 
 const data3 = new blockData(manu1_id , "Drug 3 ID" , "Drug 3 Name");
-blockData.signDrug(manu1_sign , data3)
+blockData.signData(manu1_sign , data3)
 bc.addData(data3)
 
 bc.minePending()
@@ -34,7 +34,7 @@ const manu2_sign = ec.keyFromPrivate('b5a6f40714142eb974163db6ae96265758bcdd66c0
 const manu2_id = manu2_sign.getPublic('hex')
 
 const data4 = new blockData(manu2_id , "Drug 4 ID" , "Drug 4 Name");
-blockData.signDrug(manu2_sign , data4)
+blockData.signData(manu2_sign , data4)
 bc.addData(data4)
 
 bc.minePending()

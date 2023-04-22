@@ -5,6 +5,7 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const axios = require('axios');
 const readline = require('readline');
+const prompt = require('prompt-sync')();
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -54,6 +55,12 @@ axios.request(postConfig)
 .catch((error) => {
   console.log(error);
 });
+
+function zkpSendS(b){
+    s = modExp((r + b*x) , 1n , (p - 1n))
+    return s;
+}
+module.exports.zkpSendS = zkpSendS;
 
 server = new ws.Server({ port : PORT})
 let opened = [] , connected = [];
@@ -179,19 +186,42 @@ async function interactWithChain(choice){
             console.log("Connected to Peers")
             console.log()
         break;
+
         case 2:
             sendMessage(produceMessage("REQUEST_CHAIN" , my_address))
         break;
+
         case 3:
             console.log()
 	        console.log(JSON.stringify(drugChain , null , 3))
             console.log()
         break;
-        case 4:
-            const rand = Math.floor(Math.random() * 100)
-            const data1 = new blockData(manu_id , `Drug ID ${rand}` , `Drug Name ${rand}`);
-            blockData.signDrug(manu_sign , data1)
-            console.log(`Broadcasting --> Drug ID ${rand} Drug Name ${rand}`)
+
+        case 4:              
+        const drug_name = prompt('Enter Drug Name : ');
+        const drug_id = prompt('Enter Drug ID : ');
+        const data1 = new blockData(manu_id , `${drug_id}` , `${drug_name}`);
+
+        blockData.signData(manu_sign , data1)
+        
+        console.log('\nVerifying Drug with ZKP')
+        const zkpVerify = require('./drugVerify.js').zkpVerify
+        
+        let flag = true;
+
+        for(let i = 0 ; i < 50 ; i++){
+            zkpSet(drug_id)
+            if(zkpVerify(p , g , h) === false){
+                console.log('\nZKP Verification Failed. Drug ID Invalid')
+                flag = false
+                break;
+            }
+        }
+
+        if(flag){
+            console.log('ZKP Verification Successful\n')
+
+            console.log(`Broadcasting --> Drug ID ${drug_id} Drug Name ${drug_name}`)
             sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
             drugChain.addData(data1)
                 if(drugChain.pendingData.length == drugChain.blockSize){
@@ -199,7 +229,10 @@ async function interactWithChain(choice){
                 }
                 else
                     console.log("Listening.... Pending Data Length:",drugChain.pendingData.length)
+        }
+
         break;
+
         default:
             console.log('Invalid Input')
     }
@@ -266,4 +299,50 @@ console.log()
 rl.on('line', (input) => {
     interactWithChain(parseInt(input))
 });
-  
+
+
+let p = 8710351092170399568734017n
+
+let g = 38635475621555899789n
+
+let x = 0n
+let y = 0n
+let r = 0n
+let h = 0n
+
+function zkpSet(x1){
+    x = uuidToBigInt(x1)
+    y = modExp(g ,x , p)
+    r = randBigInt2(p)
+    h = modExp(g , r , p)
+}
+
+const uuidToBigInt = (str) => {
+    let newStr = str.replace(/-/g, "");
+    newStr = "0x" + newStr
+    return(BigInt(newStr))
+}
+
+const modExp = function (a, b, n) {
+    a %= n;
+    var rslt = 1n , x = a , lsb;
+    while (b > 0) {
+        lsb = b % 2n;
+        b = b / 2n;
+        if (lsb == 1n) {
+            rslt = rslt * x;
+            rslt = rslt % n;
+        }
+        x *= x ;
+        x %= n;
+    }
+    return rslt;
+};
+
+function randBigInt2(range) {
+    var rand = [], digits = range.toString().length / 9 + 2 | 0;
+    while (digits--) { 
+        rand.push(("" + (Math.random() * 1000000000 | 0)).padStart(9, "0"));
+    }
+    return BigInt(rand.join("")) % range;
+}
