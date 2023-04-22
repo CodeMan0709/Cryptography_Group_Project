@@ -200,7 +200,7 @@ async function interactWithChain(choice){
         case 4:              
         const drug_name = prompt('Enter Drug Name : ');
         const drug_id = prompt('Enter Drug ID : ');
-        const data1 = new blockData(manu_id , `${drug_id}` , `${drug_name}`);
+        const data1 = new blockData(manu_id , `${drug_name}`);
 
         blockData.signData(manu_sign , data1)
         

@@ -17,7 +17,7 @@ export class Blockchain{
     }
     
     createGenesis() : Block{
-        return new Block([new blockData("", "" , "Genesis Block")]);
+        return new Block([new blockData("" , "Genesis Block")]);
     }
 
     getLatestBlock() : Block{
@@ -130,19 +130,17 @@ export class Block{
 export class blockData{
 
     public manufacturerID : string;
-    public drugID : string;
     public drugName : string;
     public signature;
 
-    constructor( manufacturerID : string , drugID : string , drugName : string ) {
+    constructor( manufacturerID : string , drugName : string ) {
         this.drugName = drugName;
         this.manufacturerID = manufacturerID;
-        this.drugID = drugID;
         this.signature = '';
     }
 
     static calcHash(bd : blockData) : string{ 
-        return sha256(JSON.stringify(bd.drugName) + bd.manufacturerID + bd.drugID).toString();
+        return sha256(JSON.stringify(bd.drugName) + bd.manufacturerID).toString();
     }
 
     static signData(signingKey : any , bd : blockData){
@@ -164,7 +162,7 @@ export class blockData{
         if (!bd.signature || bd.signature.length === 0 || bd.signature == "") 
             throw new Error('No signature provided');
         
-        if(!bd.manufacturerID || !bd.drugID || !bd.drugName)
+        if(!bd.manufacturerID || !bd.drugName)
             return false;
         
         const publicKey = ec.keyFromPublic(bd.manufacturerID , 'hex');
