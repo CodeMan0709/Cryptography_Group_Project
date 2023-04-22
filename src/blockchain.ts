@@ -11,7 +11,7 @@ export class Blockchain{
 
     constructor(){
         this.chain = [this.createGenesis()];
-        this.difficulty = 3;
+        this.difficulty = 4;
         this.pendingData = [];
         this.blockSize = 3;
     }
@@ -41,7 +41,7 @@ export class Blockchain{
         }
     }
 
-    getDrugs(id : string) : Array<string>{
+    viewUser(id : string) : Array<string>{
         let drugList : Array<string> = [];
          
         this.chain.forEach(block => {
@@ -133,7 +133,7 @@ export class blockData{
     public drugName : string;
     public signature;
 
-    constructor( manufacturerID : string , drugName : string ) {
+    constructor( manufacturerID : string , drugName : string) {
         this.drugName = drugName;
         this.manufacturerID = manufacturerID;
         this.signature = '';

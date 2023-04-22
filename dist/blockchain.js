@@ -7,7 +7,7 @@ const sha256 = require('crypto-js/sha256');
 class Blockchain {
     constructor() {
         this.chain = [this.createGenesis()];
-        this.difficulty = 3;
+        this.difficulty = 4;
         this.pendingData = [];
         this.blockSize = 3;
     }
@@ -33,7 +33,7 @@ class Blockchain {
             console.log("Need more data before mining");
         }
     }
-    getDrugs(id) {
+    viewUser(id) {
         let drugList = [];
         this.chain.forEach(block => {
             block.data.forEach(blockData => {

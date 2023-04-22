@@ -7,10 +7,13 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const axios = require('axios');
 const express = require('express');
+const cors = require('cors')
 
 let peers;
 
 key = ec.genKeyPair();
+
+
 id = key.getPublic('hex');
 
 const PORT = 3000 + Math.floor(Math.random()*100)
@@ -88,7 +91,7 @@ server.on("connection" , async (socket , req) => {
                     drugChain.pendingData = [];
                     console.log("Block Added")
                 }
-                else if(drugChain.getLatestBlock().hash = newBlock.hash)
+                else if(drugChain.getLatestBlock().hash === newBlock.hash)
                     console.log("Block Not Added. The block is already present here")
                 else if(drugChain.getLatestBlock().data === newBlock.data)
                     console.log("Block Not Added. The duplicate block data detected")
@@ -194,6 +197,7 @@ connectWithPeers()
 
 const app = express();
 
+app.use(cors())
 const portListener = 3000;
 
 app.listen(portListener, () => {

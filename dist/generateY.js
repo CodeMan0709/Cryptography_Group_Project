@@ -1,5 +1,3 @@
-const {promises: fsPromises} = require('fs');
-
 let p = 8710351092170399568734017n
 
 let g = 38635475621555899789n

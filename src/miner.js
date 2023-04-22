@@ -7,6 +7,7 @@ const axios = require('axios');
 const readline = require('readline');
 const prompt = require('prompt-sync')();
 
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -76,7 +77,7 @@ server.on("connection" , async (socket , req) => {
 
                 const drugData = _message.data[0];
                 console.log("Received Data from " ,_message.data[1] ," Pending Length : " , (drugChain.pendingData.length + 1))
-                console.log(drugData)
+
                 drugChain.addData(drugData)
 
                 if(drugChain.pendingData.length == drugChain.blockSize){
@@ -110,7 +111,7 @@ server.on("connection" , async (socket , req) => {
                     drugChain.pendingData = [];
                     console.log("Block Added")
                 }
-                else if(drugChain.getLatestBlock().hash = newBlock.hash)
+                else if(drugChain.getLatestBlock().hash === newBlock.hash)
                     console.log("Block Not Added. The block is already present here")
                 else if(drugChain.getLatestBlock().data === newBlock.data)
                     console.log("Block Not Added. The duplicate block data detected")
@@ -220,7 +221,7 @@ async function interactWithChain(choice){
         if(flag){
             console.log('ZKP Verification Successful\n')
 
-            console.log(`Broadcasting --> Drug ID ${drug_id} Drug Name ${drug_name}`)
+            console.log(`Broadcasting --> Drug Name ${drug_name}`)
             sendMessage(produceMessage("CREATE_DRUG", [data1 , my_address]));
             drugChain.addData(data1)
                 if(drugChain.pendingData.length == drugChain.blockSize){
@@ -232,14 +233,21 @@ async function interactWithChain(choice){
 
         break;
 
+        case 5:{
+            const manu_id = prompt('Enter Manufacturer ID : ');
+            console.log(drugChain.viewUser(manu_id))
+        }
+
+        break;
+
         default:
             console.log('Invalid Input')
     }
 }
-
+  
 function startMining(){
     if (drugChain.pendingData.length == drugChain.blockSize) {
-        drugChain.minePending();
+        drugChain.minePending(my_address);
         console.log("Broadcasting block to other nodes.")
         sendMessage(produceMessage("ADD_BLOCK", [drugChain.getLatestBlock() , my_address]))
     }
